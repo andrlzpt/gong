@@ -109,6 +109,9 @@ tasks:
 
         go build -buildmode=c-shared -overlay build/android/overlay.json {{.BUILD_FLAGS}} \
           -o build/android/app/src/main/jniLibs/$JNI_DIR/libwails.so
+        
+        AUDIO_CXX_RUNTIME=$("$CXX" -print-file-name=libc++_shared.so)
+        cp "$AUDIO_CXX_RUNTIME" "build/android/app/src/main/jniLibs/$JNI_DIR/"
     vars:
       BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production,android -trimpath -buildvcs=false -ldflags="-w -s"{{else}}-tags android,debug -buildvcs=false -gcflags=all="-l"{{end}}'
 
