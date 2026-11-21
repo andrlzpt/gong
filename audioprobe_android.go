@@ -3,7 +3,8 @@
 package main
 
 /*
-#cgo LDFLAGS: -llog
+#cgo CXXFLAGS: -std=c++17 -I${SRCDIR}/third_party/oboe/include
+#cgo android,arm64 LDFLAGS: -L${SRCDIR}/build/android/build/oboe/arm64-v8a -loboe -lOpenSLES -llog
 int gong_audio_probe(void);
 */
 import "C"
