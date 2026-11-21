@@ -36,6 +36,8 @@ tasks:
 
   dev:
     summary: Runs the application in development mode
+    env:
+      GOFLAGS: "-tags=gtk3"
     cmds:
       - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
 

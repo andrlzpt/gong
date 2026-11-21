@@ -63,3 +63,38 @@ Events.On('time', (time) => {
     const compact = (full.match(/\d{1,2}:\d{2}:\d{2}/) || [full])[0];
     timeElement.innerText = window.matchMedia('(max-width: 640px)').matches ? compact : full;
 });
+
+const microphoneButton = document.getElementById(
+    'test-microphone'
+) as HTMLButtonElement;
+
+const microphoneStatus = document.getElementById(
+    'microphone-status'
+) as HTMLParagraphElement;
+
+microphoneButton.addEventListener('click', async () => {
+    microphoneButton.disabled = true;
+    microphoneStatus.textContent = 'Solicitando acesso…';
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+        });
+
+        stream.getTracks().forEach((track) => track.stop());
+        microphoneStatus.textContent = 'Acesso concedido. Microfone liberado.';
+    } catch (error) {
+        microphoneStatus.textContent =
+            error instanceof DOMException && error.name === 'NotAllowedError'
+                ? 'Acesso ao microfone negado.'
+                : 'Não foi possível acessar o microfone. Consulte o console.';
+
+        if (error instanceof Error) {
+            console.error(`Microfone: ${error.name}: ${error.message}`);
+        } else {
+            console.error(`Microfone: ${String(error)}`);
+        }
+    } finally {
+        microphoneButton.disabled = false;
+    }
+});

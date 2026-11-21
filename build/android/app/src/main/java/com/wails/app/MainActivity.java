@@ -31,6 +31,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.PermissionRequest;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -72,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int PHOTO_CAPTURE_REQUEST = 7002;
     private static final int VIDEO_CAPTURE_REQUEST = 7003;
     private static final int CAMERA_PERMISSION_REQUEST = 7010;
+    private static final int MICROPHONE_PERMISSION_REQUEST = 7011;
+
+    private PermissionRequest pendingMicrophoneRequest;
 
     // In-flight callback for an HTML <input type="file"> chooser opened by the
     // WebView's WebChromeClient (null when idle).
@@ -229,6 +233,46 @@ public class MainActivity extends AppCompatActivity {
         // those requests will be denied by the default implementation until a
         // scoped permissions handler is added.
         webView.setWebChromeClient(new WebChromeClient() {
+            
+            @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                Log.d(TAG, "Permissão WebView: origem=" + request.getOrigin()
+                        + ", recursos="
+                        + java.util.Arrays.toString(request.getResources()));
+
+                if (!Uri.parse("https://wails.localhost/").equals(request.getOrigin())) {
+
+                    request.deny();
+                    return;
+                }
+
+                for (String resource : request.getResources()) {
+                    if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
+                        if (checkSelfPermission("android.permission.RECORD_AUDIO") == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(new String[]{ PermissionRequest.RESOURCE_AUDIO_CAPTURE });
+                        } else {
+                            if (pendingMicrophoneRequest != null) {
+                                request.deny();
+                                return;
+                            }
+
+                            pendingMicrophoneRequest = request;
+                            requestPermissions(new String[]{"android.permission.RECORD_AUDIO"}, MICROPHONE_PERMISSION_REQUEST);
+                        }
+                        return;
+                    }
+                }
+
+                request.deny();
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest request) {
+                if (pendingMicrophoneRequest == request) {
+                    pendingMicrophoneRequest = null;
+                }
+            }
+
             @Override
             public boolean onConsoleMessage(ConsoleMessage msg) {
                 if (DEBUG) {
@@ -302,6 +346,26 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MICROPHONE_PERMISSION_REQUEST) {
+            boolean granted = grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+
+            PermissionRequest request = pendingMicrophoneRequest;
+            pendingMicrophoneRequest = null;
+
+            if (request != null) {
+                if (granted) {
+                    request.grant(new String[]{
+                            PermissionRequest.RESOURCE_AUDIO_CAPTURE
+                    });
+                } else {
+                    request.deny();
+                }
+            }
+
+            return;
+        }
+        
         if (requestCode == CAMERA_PERMISSION_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 launchCameraCapture(pendingCaptureIsVideo);
