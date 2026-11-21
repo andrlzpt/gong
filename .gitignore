@@ -9,3 +9,9 @@ build/ios/xcode/overlay.json
 build/ios/xcode/gen/
 build/android/overlay.json
 build/android/gen/
+
+# Android cache and generated files
+/build/android/.gradle/
+/build/android/app/build/
+/build/android/build/
+/build/android/app/src/main/jniLibs/*/libwails.so
