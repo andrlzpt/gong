@@ -1,69 +1,3 @@
-import {Events, WML} from "@wailsio/runtime";
-import {GreetService} from "../bindings/changeme";
-
-// Wire up data-wml-openURL links (logos + footer "Docs" link) once the DOM is ready.
-WML.Enable();
-
-const greetButton = document.getElementById('greet')! as HTMLButtonElement;
-const nameElement = document.getElementById('name')! as HTMLInputElement;
-const resultElement = document.getElementById('result')! as HTMLSpanElement;
-const timeElement = document.getElementById('time')! as HTMLSpanElement;
-const titleNameElement = document.querySelector('.title-name')! as HTMLElement;
-const toastElement = document.getElementById('toast')! as HTMLDivElement;
-let toastTimer: ReturnType<typeof setTimeout>;
-
-// Show the actual Wails version this project was generated against.
-document.getElementById('version')!.innerText = "v3.0.0";
-
-// Crossfade the framework word in the heading ("Wails + JavaScript") to the name
-// the user entered ("Wails + <name>"): the old word fades out while the new one
-// fades in over the same spot.
-function swapTitleName(name: string) {
-    const current = titleNameElement.querySelector('.title-name-text:not(.is-outgoing)') as HTMLElement | null;
-    if (!current || current.textContent === name) {
-        return;
-    }
-    const incoming = document.createElement('span');
-    incoming.className = 'title-name-text is-entering';
-    incoming.textContent = name;
-    current.classList.add('is-outgoing');
-    titleNameElement.appendChild(incoming);
-    // Force a reflow so the transitions run from the starting state.
-    void incoming.offsetWidth;
-    incoming.classList.remove('is-entering');
-    current.classList.add('is-leaving');
-    current.addEventListener('transitionend', () => current.remove(), {once: true});
-}
-
-// Pop the toast with the message Go returned, then auto-dismiss it.
-function showToast(message: string) {
-    resultElement.innerText = message;
-    toastElement.classList.add('is-visible');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastElement.classList.remove('is-visible'), 4000);
-}
-
-greetButton.addEventListener('click', async () => {
-    let name = nameElement.value;
-    if (!name) {
-        name = 'anonymous';
-    }
-    swapTitleName(name);
-    try {
-        showToast(await GreetService.Greet(name));
-    } catch (err) {
-        console.error(err);
-    }
-});
-
-Events.On('time', (time) => {
-    // The full RFC1123 stamp is too wide for the footer on a phone, so on narrow
-    // screens (matching the CSS breakpoint) we show just the clock time.
-    const full = time.data;
-    const compact = (full.match(/\d{1,2}:\d{2}:\d{2}/) || [full])[0];
-    timeElement.innerText = window.matchMedia('(max-width: 640px)').matches ? compact : full;
-});
-
 const microphoneButton = document.getElementById(
     'test-microphone'
 ) as HTMLButtonElement;
@@ -74,7 +8,7 @@ const microphoneStatus = document.getElementById(
 
 microphoneButton.addEventListener('click', async () => {
     microphoneButton.disabled = true;
-    microphoneStatus.textContent = 'Solicitando acesso…';
+    microphoneStatus.textContent = 'Requesting access…';
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -82,17 +16,17 @@ microphoneButton.addEventListener('click', async () => {
         });
 
         stream.getTracks().forEach((track) => track.stop());
-        microphoneStatus.textContent = 'Acesso concedido. Microfone liberado.';
+        microphoneStatus.textContent = 'Access granted. Microphone released.';
     } catch (error) {
         microphoneStatus.textContent =
             error instanceof DOMException && error.name === 'NotAllowedError'
-                ? 'Acesso ao microfone negado.'
-                : 'Não foi possível acessar o microfone. Consulte o console.';
+                ? 'Microphone access denied.'
+                : 'Could not access the microphone. Check the console.';
 
         if (error instanceof Error) {
-            console.error(`Microfone: ${error.name}: ${error.message}`);
+            console.error(`Microphone: ${error.name}: ${error.message}`);
         } else {
-            console.error(`Microfone: ${String(error)}`);
+            console.error(`Microphone: ${String(error)}`);
         }
     } finally {
         microphoneButton.disabled = false;
