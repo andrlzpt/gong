@@ -60,6 +60,7 @@ tasks:
     summary: Compile Go code to shared library (.so)
     cmds:
       - |
+        set -e
         # Locate the NDK: $ANDROID_NDK_HOME, or the newest installed NDK
         NDK_ROOT="$ANDROID_NDK_HOME"
         if [ -z "$NDK_ROOT" ]; then
@@ -103,6 +104,25 @@ tasks:
 
         export CGO_ENABLED=1
         export GOOS=android
+
+        AUDIO_CMAKE="{{.SDK_ROOT}}/cmake/3.22.1/bin/cmake"
+        AUDIO_NINJA="{{.SDK_ROOT}}/cmake/3.22.1/bin/ninja"
+        AUDIO_OBOE_BUILD="build/android/build/oboe/$JNI_DIR"
+
+        "$AUDIO_CMAKE" \
+          -S third_party/oboe \
+          -B "$AUDIO_OBOE_BUILD" \
+          -G Ninja \
+          -DCMAKE_MAKE_PROGRAM="$AUDIO_NINJA" \
+          -DCMAKE_TOOLCHAIN_FILE="$NDK_ROOT/build/cmake/android.toolchain.cmake" \
+          -DANDROID_ABI="$JNI_DIR" \
+          -DANDROID_PLATFORM=android-{{.MIN_SDK}} \
+          -DANDROID_STL=c++_shared \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+
+        "$AUDIO_CMAKE" --build "$AUDIO_OBOE_BUILD" --parallel 2
 
         mkdir -p {{.BIN_DIR}}
         mkdir -p build/android/app/src/main/jniLibs/$JNI_DIR
