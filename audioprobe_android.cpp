@@ -29,7 +29,22 @@ public:
 
 static_assert(std::atomic<uint32_t>::is_always_lock_free);
 
-extern "C" int gong_audio_probe(void) {
+class AudioEngine {
+public:
+    int start();
+    int stop();
+
+private:
+    std::shared_ptr<SilenceCallback> callback;
+    std::shared_ptr<oboe::AudioStream> stream;
+};
+
+static AudioEngine engine;
+
+int AudioEngine::start() {
+    if (stream != nullptr) {
+        return 0;
+    }
     __android_log_print(
         ANDROID_LOG_INFO,
         "GONG",
@@ -37,7 +52,7 @@ extern "C" int gong_audio_probe(void) {
         oboe::getVersionText()
     );
 
-    auto callback = std::make_shared<SilenceCallback>();
+    callback = std::make_shared<SilenceCallback>();
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
@@ -48,7 +63,6 @@ extern "C" int gong_audio_probe(void) {
 
     builder.setDataCallback(callback);
 
-    std::shared_ptr<oboe::AudioStream> stream;
     oboe::Result result = builder.openStream(stream);
 
     if (result != oboe::Result::OK) {
@@ -56,6 +70,9 @@ extern "C" int gong_audio_probe(void) {
             ANDROID_LOG_ERROR, "GONG",
             "Open output failed: %s", oboe::convertToText(result)
         );
+        stream.reset();
+        callback.reset();
+
         return -1;
     }
 
@@ -77,12 +94,20 @@ extern "C" int gong_audio_probe(void) {
             "Start output failed: %s", oboe::convertToText(result)
         );
         stream->close();
+        stream.reset();
+        callback.reset();
         return -1;
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    return 0;
+}
 
-    result = stream->close();
+int AudioEngine::stop() {
+    if (stream == nullptr) {
+        return 0;
+    }
+
+    const oboe::Result result = stream->close();
 
     __android_log_print(
         ANDROID_LOG_INFO, "GONG",
@@ -96,5 +121,29 @@ extern "C" int gong_audio_probe(void) {
             callback->calls.load(std::memory_order_relaxed))
     );
 
-    return result == oboe::Result::OK ? 0 : -1;
+    if (result != oboe::Result::OK) {
+        return -1;
+    }
+
+    stream.reset();
+    callback.reset();
+    return 0;
+}
+
+extern "C" int gong_audio_start(void) {
+    return engine.start();
+}
+
+extern "C" int gong_audio_stop(void) {
+    return engine.stop();
+}
+
+extern "C" int gong_audio_probe(void) {
+    const int result = gong_audio_start();
+    if (result != 0) {
+        return result;
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    return gong_audio_stop();
 }
