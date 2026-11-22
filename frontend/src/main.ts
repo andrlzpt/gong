@@ -1,3 +1,5 @@
+import { AudioService } from '../bindings/changeme';
+
 const microphoneButton = document.getElementById(
     'test-microphone'
 ) as HTMLButtonElement;
@@ -30,5 +32,28 @@ microphoneButton.addEventListener('click', async () => {
         }
     } finally {
         microphoneButton.disabled = false;
+    }
+});
+
+const outputButton = document.getElementById(
+    'test-output'
+) as HTMLButtonElement;
+
+const outputStatus = document.getElementById(
+    'output-status'
+) as HTMLParagraphElement;
+
+outputButton.addEventListener('click', async () => {
+    outputButton.disabled = true;
+    outputStatus.textContent = 'Testing silent output…';
+
+    try {
+        await AudioService.TestOutput();
+        outputStatus.textContent = 'Output test completed.';
+    } catch (error) {
+        outputStatus.textContent = 'Output test failed. Check the logs.';
+        console.error('Native output test:', error);
+    } finally {
+        outputButton.disabled = false;
     }
 });

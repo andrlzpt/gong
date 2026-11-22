@@ -8,9 +8,13 @@ package main
 int gong_audio_probe(void);
 */
 import "C"
-import "log"
+import "fmt"
 
-func init() {
+func runAudioProbe() error {
 	result := int(C.gong_audio_probe())
-	log.Printf("GONG: teste GO -> C++ = %d", result)
+	if result != 0 {
+		return fmt.Errorf("native audio output test failed: code: %d", result)
+	}
+
+	return nil
 }
