@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
@@ -34,11 +35,12 @@ func main() {
 	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
 	// 'Bind' is a list of Go struct instances. The frontend has access to the methods of these instances.
 	// 'Mac' options tailor the application when running an macOS.
+	audioService := &AudioService{}
 	app := application.New(application.Options{
 		Name:        "gong",
 		Description: "A demo of using raw HTML & CSS",
 		Services: []application.Service{
-			application.NewService(&AudioService{}),
+			application.NewService(audioService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -47,6 +49,19 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
+
+	// Register AudioService's StopOutput in the pause event
+	app.Event.OnApplicationEvent(
+		events.Android.ActivityPaused,
+		func(event *application.ApplicationEvent) {
+			if err := audioService.StopOutput(); err != nil {
+				app.Logger.Error(
+					"Could not stop audio output on pause",
+					"error", err,
+				)
+			}
+		},
+	)
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.

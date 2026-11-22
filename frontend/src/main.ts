@@ -63,7 +63,7 @@ startOutputButton.addEventListener('click', async () => {
     }
 });
 
-stopOutputButton.addEventListener('click', async () => {
+async function stopOutput() {
     startOutputButton.disabled = true;
     stopOutputButton.disabled = true;
     outputStatus.textContent = 'Stopping output…';
@@ -76,5 +76,13 @@ stopOutputButton.addEventListener('click', async () => {
         outputStatus.textContent = 'Could not stop output. Try again.';
         stopOutputButton.disabled = false;
         console.error('Stop output:', error);
+    }
+};
+
+stopOutputButton.addEventListener('click', stopOutput);
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        void stopOutput();
     }
 });
