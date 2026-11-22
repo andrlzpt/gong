@@ -35,25 +35,46 @@ microphoneButton.addEventListener('click', async () => {
     }
 });
 
-const outputButton = document.getElementById(
-    'test-output'
+const startOutputButton = document.getElementById(
+    'start-output'
+) as HTMLButtonElement;
+
+const stopOutputButton = document.getElementById(
+    'stop-output'
 ) as HTMLButtonElement;
 
 const outputStatus = document.getElementById(
     'output-status'
 ) as HTMLParagraphElement;
 
-outputButton.addEventListener('click', async () => {
-    outputButton.disabled = true;
-    outputStatus.textContent = 'Testing silent output…';
+startOutputButton.addEventListener('click', async () => {
+    startOutputButton.disabled = true;
+    outputStatus.textContent = 'Starting output…';
 
     try {
-        await AudioService.TestOutput();
-        outputStatus.textContent = 'Output test completed.';
+        await AudioService.StartOutput();
+        outputStatus.textContent = 'Silent output running.';
+        stopOutputButton.disabled = false;
     } catch (error) {
-        outputStatus.textContent = 'Output test failed. Check the logs.';
-        console.error('Native output test:', error);
-    } finally {
-        outputButton.disabled = false;
+        outputStatus.textContent = 'Could not start output. Check the logs.';
+        startOutputButton.disabled = false;
+        stopOutputButton.disabled = false;
+        console.error('Start output:', error);
+    }
+});
+
+stopOutputButton.addEventListener('click', async () => {
+    startOutputButton.disabled = true;
+    stopOutputButton.disabled = true;
+    outputStatus.textContent = 'Stopping output…';
+
+    try {
+        await AudioService.StopOutput();
+        outputStatus.textContent = 'Output stopped.';
+        startOutputButton.disabled = false;
+    } catch (error) {
+        outputStatus.textContent = 'Could not stop output. Try again.';
+        stopOutputButton.disabled = false;
+        console.error('Stop output:', error);
     }
 });
