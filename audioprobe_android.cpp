@@ -3,10 +3,17 @@
 #include <android/log.h>
 #include <oboe/Oboe.h>
 #include <memory>
-#include <algorithm>
+#include <cmath>
 #include <atomic>
 
-class SilenceCallback : public oboe::AudioStreamDataCallback {
+class ToneCallback : public oboe::AudioStreamDataCallback {
+private:
+    static constexpr double twoPi = 6.283185307179586;
+    static constexpr double frequency = 440.0;
+    static constexpr float amplitude = 0.03f;
+    
+    double phase = 0.0;
+
 public:
     std::atomic<uint32_t> calls{0};
 
@@ -14,11 +21,27 @@ public:
             oboe::AudioStream* stream,
             void* audioData,
             int32_t numFrames) override {
+        
         auto* samples = static_cast<float*>(audioData);
-        const int32_t sampleCount =
-                numFrames * stream->getChannelCount();
 
-        std::fill_n(samples, sampleCount, 0.0f);
+        const double phaseStep = twoPi * frequency / stream->getSampleRate();
+
+        const int32_t channels = stream->getChannelCount();
+
+        for (int32_t frame = 0; frame < numFrames; ++frame) {
+            const float sample =
+                    amplitude * static_cast<float>(std::sin(phase));
+
+            for (int32_t channel = 0; channel < channels; ++channel) {
+                samples[frame * channels + channel] = sample;
+            }
+
+            phase += phaseStep;
+            if (phase >= twoPi) {
+                phase -= twoPi;
+            }
+        }
+
         calls.fetch_add(1, std::memory_order_relaxed);
 
         return oboe::DataCallbackResult::Continue;
@@ -33,7 +56,7 @@ public:
     int stop();
 
 private:
-    std::shared_ptr<SilenceCallback> callback;
+    std::shared_ptr<ToneCallback> callback;
     std::shared_ptr<oboe::AudioStream> stream;
 };
 
@@ -50,7 +73,7 @@ int AudioEngine::start() {
         oboe::getVersionText()
     );
 
-    callback = std::make_shared<SilenceCallback>();
+    callback = std::make_shared<ToneCallback>();
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
@@ -114,7 +137,7 @@ int AudioEngine::stop() {
 
     __android_log_print(
         ANDROID_LOG_INFO, "GONG",
-        "Silence callbacks: %u",
+        "Output callbacks: %u",
         static_cast<unsigned int>(
             callback->calls.load(std::memory_order_relaxed))
     );

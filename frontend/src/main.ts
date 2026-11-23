@@ -53,7 +53,7 @@ startOutputButton.addEventListener('click', async () => {
 
     try {
         await AudioService.StartOutput();
-        outputStatus.textContent = 'Silent output running.';
+        outputStatus.textContent = 'Test tone running.';
         stopOutputButton.disabled = false;
     } catch (error) {
         outputStatus.textContent = 'Could not start output. Check the logs.';
