@@ -12,15 +12,6 @@ int gong_audio_stop(void);
 import "C"
 import "fmt"
 
-func runAudioProbe() error {
-	result := int(C.gong_audio_probe())
-	if result != 0 {
-		return fmt.Errorf("native audio output test failed: code: %d", result)
-	}
-
-	return nil
-}
-
 func startAudioOutput() error {
 	if result := int(C.gong_audio_start()); result != 0 {
 		return fmt.Errorf("start audio output failed: code %d", result)

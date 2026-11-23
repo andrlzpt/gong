@@ -12,7 +12,3 @@ export function StartOutput(): $CancellablePromise<void> {
 export function StopOutput(): $CancellablePromise<void> {
     return $Call.ByID(2109152838);
 }
-
-export function TestOutput(): $CancellablePromise<void> {
-    return $Call.ByID(2532817226);
-}

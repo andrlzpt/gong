@@ -5,8 +5,6 @@
 #include <memory>
 #include <algorithm>
 #include <atomic>
-#include <chrono>
-#include <thread>
 
 class SilenceCallback : public oboe::AudioStreamDataCallback {
 public:
@@ -136,14 +134,4 @@ extern "C" int gong_audio_start(void) {
 
 extern "C" int gong_audio_stop(void) {
     return engine.stop();
-}
-
-extern "C" int gong_audio_probe(void) {
-    const int result = gong_audio_start();
-    if (result != 0) {
-        return result;
-    }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    return gong_audio_stop();
 }
