@@ -3,23 +3,43 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#101819" />
+<meta name="theme-color" content="#0e0f10" />
 <link rel="stylesheet" href="/style.css" />
 <title>GONG</title>
 </head>
 <body>
 <main class="instrument">
-    <header class="header"><h1>GONG<span>.</span></h1><span class="status">READY</span></header>
+    <header class="header">
+        <h1 class="brand-banner">
+            <img src="/images/gong-banner.png" width="2172" height="724"
+                 alt="GONG — REC · LOOP · DUB · CREATE" />
+        </h1>
+        <span class="status">READY</span>
+    </header>
     <section class="looper" aria-label="Looper">
-        <div class="hero">
+        <section class="hero input-meter" data-state="inactive" aria-labelledby="input-meter-title" aria-describedby="input-meter-status">
             <svg class="rings" viewBox="0 0 320 320" aria-hidden="true">
-                <circle cx="160" cy="160" r="148" />
-                <circle class="inner-ring" cx="160" cy="160" r="136" />
+                <circle class="inner-ring" cx="160" cy="160" r="126" />
+                <path class="input-meter-track" pathLength="100"
+                      d="M 55.35 264.65 A 148 148 0 1 1 264.65 264.65" />
+                <path id="input-meter-fill" class="input-meter-fill" pathLength="100"
+                      d="M 55.35 264.65 A 148 148 0 1 1 264.65 264.65" />
+                <text class="meter-scale" x="43" y="290" text-anchor="middle">−60</text>
+                <text class="meter-scale" x="277" y="290" text-anchor="middle">0 dBFS</text>
             </svg>
             <button id="record" class="center-button" type="button" disabled aria-describedby="engine-status">
                 <span class="time">00:00</span><span class="minor">FIRST TAKE</span>
                 <span class="record-action"><span class="record-dot" aria-hidden="true"></span> RECORD</span>
             </button>
+            <div class="input-meter-reading">
+                <h2 id="input-meter-title">INPUT</h2>
+                <output id="input-meter-value" aria-label="Microphone level">— dBFS</output>
+                <span id="input-meter-clip" class="input-meter-clip" hidden>CLIP</span>
+            </div>
+        </section>
+        <div class="input-meter-caption">
+            <span id="input-meter-state">INACTIVE</span>
+            <p id="input-meter-status" role="status">Native microphone capture is not connected yet.</p>
         </div>
         <p class="loop-counter">↻ 0 completed loops</p>
         <p class="hint">One idea. One layer at a time.</p>
@@ -41,6 +61,7 @@
                 <p id="microphone-status" role="status">Microphone not tested yet.</p>
             </section>
             <section class="test-section" aria-labelledby="output-title">
+                <h2 id="output-title">Native audio output</h2>
                 <button id="start-output" type="button">Start test tone</button>
                 <button id="stop-output" type="button" disabled>Stop output</button>
                 <p id="output-status" role="status">Output stopped.</p>
