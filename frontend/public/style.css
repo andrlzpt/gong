@@ -40,11 +40,22 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--focus-rin
 [hidden] { display: none !important; }
 .instrument {
     width: min(480px, 100%); min-height: 100vh; min-height: 100dvh; margin: auto;
-    padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    padding: 0 max(20px, env(safe-area-inset-right))
         max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
     display: flex; flex-direction: column;
 }
-.header { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: 12px;
+    background: var(--color-bg);
+}
 .brand-banner { margin: 0; line-height: 0; }
 .brand-banner img { display: block; width: 100%; height: auto; }
 .status { color: var(--color-text-muted); justify-self: end; }
@@ -105,5 +116,8 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--focus-rin
 .test-section button { width: 100%; }
 .test-section p { color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
 .test-section p { margin: 12px 0 0; }
-@media (min-width: 700px) { .instrument { padding-top: 32px; padding-bottom: 24px; } }
+@media (min-width: 700px) {
+    .instrument { padding-bottom: 24px; }
+    .header { padding-top: max(32px, env(safe-area-inset-top)); }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
