@@ -74,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int VIDEO_CAPTURE_REQUEST = 7003;
     private static final int CAMERA_PERMISSION_REQUEST = 7010;
     private static final int MICROPHONE_PERMISSION_REQUEST = 7011;
+    private static final int NATIVE_MICROPHONE_PERMISSION_REQUEST = 7012;
+    private boolean nativeMicrophonePermissionPending = false;
 
     private PermissionRequest pendingMicrophoneRequest;
 
@@ -343,9 +345,45 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Request native microphone permission, separate from WebView
+    */
+    public void requestNativeMicrophonePermission() {
+        if (nativeMicrophonePermissionPending) {
+            return;
+        }
+
+        if (checkSelfPermission("android.permission.RECORD_AUDIO")
+                == PackageManager.PERMISSION_GRANTED) {
+            bridge.emitEvent("gong:microphone-permission", "{\"granted\":true}");
+            return;
+        }
+
+        nativeMicrophonePermissionPending = true;
+        requestPermissions(
+                new String[]{"android.permission.RECORD_AUDIO"},
+                NATIVE_MICROPHONE_PERMISSION_REQUEST);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == NATIVE_MICROPHONE_PERMISSION_REQUEST) {
+            nativeMicrophonePermissionPending = false;
+
+            boolean granted = grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            
+            Log.d(TAG, "Native microphone permission: " + granted);
+
+            bridge.emitEvent(
+                "gong:microphone-permission",
+                granted ? "{\"granted\":true}" : "{\"granted\":false}");
+            
+            return;
+        }
+
         if (requestCode == MICROPHONE_PERMISSION_REQUEST) {
             boolean granted = grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED;

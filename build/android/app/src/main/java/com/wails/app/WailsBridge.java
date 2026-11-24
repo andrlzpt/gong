@@ -1417,4 +1417,13 @@ public class WailsBridge {
     private void dialogCallback(int callbackID, int buttonIndex) {
         if (initialized) nativeDialogCallback(callbackID, buttonIndex);
     }
+
+    /** Request native microphone permission. */
+    public void requestMicrophonePermission() {
+        mainHandler.post(() -> {
+            if (activity instanceof MainActivity) {
+                ((MainActivity) activity).requestNativeMicrophonePermission();
+            }
+        });
+    }
 }

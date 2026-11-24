@@ -50,10 +50,17 @@ func main() {
 		},
 	})
 
-	// Register AudioService's StopOutput in the pause event
+	// Register AudioService's StopOutput && StopInput in the pause event
 	app.Event.OnApplicationEvent(
 		events.Android.ActivityPaused,
 		func(event *application.ApplicationEvent) {
+			if err := audioService.StopInput(); err != nil {
+				app.Logger.Error(
+					"Could not stop audio input on pause",
+					"error", err,
+				)
+			}
+
 			if err := audioService.StopOutput(); err != nil {
 				app.Logger.Error(
 					"Could not stop audio output on pause",

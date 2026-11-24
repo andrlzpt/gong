@@ -19,3 +19,17 @@ func (s *AudioService) StopOutput() error {
 
 	return stopAudioOutput()
 }
+
+func (s *AudioService) StartInput() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return startAudioInput()
+}
+
+func (s *AudioService) StopInput() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return stopAudioInput()
+}

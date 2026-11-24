@@ -148,4 +148,10 @@ public class WailsJSBridge {
                 .replace(String.valueOf((char) 0x2028), "\\u2028")
                 .replace(String.valueOf((char) 0x2029), "\\u2029");
     }
+
+    /** Requests native microphone permission */
+    @JavascriptInterface
+    public void requestMicrophonePermission() {
+        bridge.requestMicrophonePermission();
+    }
 }

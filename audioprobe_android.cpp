@@ -48,16 +48,50 @@ public:
     }
 };
 
+class InputCallback : public oboe::AudioStreamDataCallback {
+public:
+    std::atomic<float> peak{0.0f};
+    std::atomic<uint32_t> calls{0};
+
+    oboe::DataCallbackResult onAudioReady(
+            oboe::AudioStream* stream,
+            void* audioData,
+            int32_t numFrames) override {
+        const auto* samples = static_cast<const float*>(audioData);
+        const int32_t sampleCount = numFrames *stream->getChannelCount();
+
+        float blockPeak = 0.0f;
+
+        for (int32_t i = 0; i < sampleCount; ++i) {
+            const float magnitude = std::fabs(samples[i]);
+            if (magnitude > blockPeak) {
+                blockPeak = magnitude;
+            }
+        }
+
+        peak.store(blockPeak, std::memory_order_relaxed);
+        calls.fetch_add(1, std::memory_order_relaxed);
+
+        return oboe::DataCallbackResult::Continue;
+    }
+};
+
 static_assert(std::atomic<uint32_t>::is_always_lock_free);
+
+static_assert(std::atomic<float>::is_always_lock_free);
 
 class AudioEngine {
 public:
     int start();
     int stop();
+    int startInput();
+    int stopInput();
 
 private:
     std::shared_ptr<ToneCallback> callback;
     std::shared_ptr<oboe::AudioStream> stream;
+    std::shared_ptr<InputCallback> inputCallback;
+    std::shared_ptr<oboe::AudioStream> inputStream;
 };
 
 static AudioEngine engine;
@@ -151,10 +185,94 @@ int AudioEngine::stop() {
     return 0;
 }
 
+int AudioEngine::startInput() {
+    if (inputStream != nullptr) {
+        return 0;
+    }
+
+    inputCallback = std::make_shared<InputCallback>();
+
+    oboe::AudioStreamBuilder builder;
+    builder.setDirection(oboe::Direction::Input);
+    builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
+    builder.setSharingMode(oboe::SharingMode::Exclusive);
+    builder.setFormat(oboe::AudioFormat::Float);
+    builder.setChannelCount(oboe::ChannelCount::Mono);
+    builder.setDataCallback(inputCallback);
+
+    oboe::Result result = builder.openStream(inputStream);
+
+    if (result != oboe::Result::OK) {
+        __android_log_print(
+            ANDROID_LOG_ERROR, "GONG",
+            "Open input failed: %s", oboe::convertToText(result)
+        );
+        inputStream.reset();
+        inputCallback.reset();
+        return -1;
+    }
+
+    result = inputStream->requestStart();
+
+    if (result != oboe::Result::OK) {
+        __android_log_print(
+            ANDROID_LOG_ERROR, "GONG",
+            "Start input failed: %s", oboe::convertToText(result)
+        );
+        inputStream->close();
+        inputStream.reset();
+        inputCallback.reset();
+        return -1;
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO, "GONG",
+        "Input started: rate=%d, channels=%d, mode=%s, sharing=%s",
+        inputStream->getSampleRate(),
+        inputStream->getChannelCount(),
+        oboe::convertToText(inputStream->getPerformanceMode()),
+        oboe::convertToText(inputStream->getSharingMode())
+    );
+
+    return 0;
+}
+
+int AudioEngine::stopInput() {
+    if (inputStream == nullptr) {
+        return 0;
+    }
+
+    const oboe::Result result = inputStream->close();
+
+    __android_log_print(
+        ANDROID_LOG_INFO, "GONG",
+        "Input close: %s; callbacks: %u",
+        oboe::convertToText(result),
+        static_cast<unsigned int>(
+            inputCallback->calls.load(std::memory_order_relaxed))
+    );
+
+    if (result != oboe::Result::OK) {
+        return -1;
+    }
+
+    inputStream.reset();
+    inputCallback.reset();
+    return 0;
+}
+
 extern "C" int gong_audio_start(void) {
     return engine.start();
 }
 
 extern "C" int gong_audio_stop(void) {
     return engine.stop();
+}
+
+extern "C" int gong_audio_input_start(void) {
+    return engine.startInput();
+}
+
+extern "C" int gong_audio_input_stop(void) {
+    return engine.stopInput();
 }
