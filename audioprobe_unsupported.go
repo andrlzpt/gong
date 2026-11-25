@@ -19,3 +19,7 @@ func startAudioInput() error {
 func stopAudioInput() error {
 	return errors.New("native audio input is available only on Android")
 }
+
+func readAudioInputPeak() (float64, error) {
+	return 0, errors.New("native audio input is available only on Android")
+}

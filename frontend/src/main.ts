@@ -130,6 +130,76 @@ const inputMeterStatus = document.getElementById('input-meter-status') as HTMLPa
 
 let inputStartPending = false;
 
+const meter = document.querySelector('.input-meter') as HTMLElement;
+const meterFill = document.getElementById('input-meter-fill') as unknown as SVGPathElement;
+const meterValue = document.getElementById('input-meter-value') as HTMLOutputElement;
+const meterClip = document.getElementById('input-meter-clip') as HTMLSpanElement;
+
+let meterGeneration = 0;
+let meterTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearMeterDisplay() {
+    meter.dataset.state = 'inactive';
+    meterFill.style.strokeDashoffset = '100';
+    meterValue.textContent = '— dBFS';
+    meterClip.hidden = true;
+}
+
+function stopMeter() {
+    meterGeneration++;
+    clearTimeout(meterTimer);
+    clearMeterDisplay();
+}
+
+function startMeter() {
+    stopMeter();
+    const generation = meterGeneration;
+
+    async function update() {
+        try {
+            const peak = await AudioService.ReadInputPeak();
+
+            if (generation !== meterGeneration) {
+                return;
+            }
+
+            if (!Number.isFinite(peak) || peak < 0) {
+                throw new Error('Invalid microphone peak.');
+            }
+
+            const db = 20 * Math.log10(Math.max(peak, 0.000001));
+            const displayDb = Math.max(-60, Math.min(0, db));
+            const percent = ((displayDb + 60) / 60) * 100;
+
+            meterFill.style.strokeDashoffset = String(100 - percent);
+            meterValue.textContent = db < -60 ? '< −60 dBFS' : `${db.toFixed(1)} dBFS`;
+
+            const clipped = peak >= 1;
+            meter.dataset.state =
+                clipped ? 'clip' : db>= -6 ? 'peak' : 'active';
+            meterClip.hidden = !clipped;
+
+            inputMeterState.textContent =
+                clipped ? 'CLIP' : db >= -6 ? 'PEAK' : 'LISTENING';
+            inputMeterStatus.textContent = 'Native microphone input · peak level';
+        } catch (error) {
+            if (generation !== meterGeneration) {
+                return;
+            }
+
+            clearMeterDisplay();
+            inputMeterState.textContent = 'NO READING';
+            inputMeterStatus.textContent = 'Waiting for a native microphone reading.';
+        }
+
+        if (generation === meterGeneration) {
+            meterTimer = setTimeout(update, 50);
+        }
+    }
+
+    void update();
+}
+
 startInputButton.addEventListener('click', async () => {
     if (inputStartPending) {
         return;
@@ -159,9 +229,8 @@ startInputButton.addEventListener('click', async () => {
         inputStatus.textContent = 'Starting native microphone…';
 
         await AudioService.StartInput();
-        inputStatus.textContent = 'Native input started. Speak, then stop to check callback counts in the logs.';
-        inputMeterState.textContent = 'NO READING';
-        inputMeterStatus.textContent = 'Native input started. Level readings are not connected yet.';
+        inputStatus.textContent = 'Native microphone running.';
+        startMeter();
         stopInputButton.disabled = false;
     } catch (error) {
         inputStatus.textContent = 'Could not start input. Check Android microphone permission and the logs.';
@@ -175,6 +244,7 @@ startInputButton.addEventListener('click', async () => {
 });
 
 async function stopInput() {
+    stopMeter();
     startInputButton.disabled = true;
     stopInputButton.disabled = true;
     inputStatus.textContent = 'Stopping input…';

@@ -9,6 +9,7 @@ int gong_audio_start(void);
 int gong_audio_stop(void);
 int gong_audio_input_start(void);
 int gong_audio_input_stop(void);
+float gong_audio_input_peak(void);
 */
 import "C"
 import "fmt"
@@ -40,4 +41,12 @@ func stopAudioInput() error {
 	}
 
 	return nil
+}
+
+func readAudioInputPeak() (float64, error) {
+	peak := float64(C.gong_audio_input_peak())
+	if peak < 0 {
+		return 0, fmt.Errorf("microphone input has no reading available")
+	}
+	return peak, nil
 }

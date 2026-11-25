@@ -33,3 +33,10 @@ func (s *AudioService) StopInput() error {
 
 	return stopAudioInput()
 }
+
+func (s *AudioService) ReadInputPeak() (float64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return readAudioInputPeak()
+}

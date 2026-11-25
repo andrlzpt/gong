@@ -69,7 +69,15 @@ public:
             }
         }
 
-        peak.store(blockPeak, std::memory_order_relaxed);
+        float previous = peak.load(std::memory_order_relaxed);
+
+        while (blockPeak > previous &&
+                !peak.compare_exchange_weak(
+                    previous, blockPeak, std::memory_order_relaxed
+                )
+            ) {
+        }
+
         calls.fetch_add(1, std::memory_order_relaxed);
 
         return oboe::DataCallbackResult::Continue;
@@ -86,6 +94,7 @@ public:
     int stop();
     int startInput();
     int stopInput();
+    float readInputPeak();
 
 private:
     std::shared_ptr<ToneCallback> callback;
@@ -261,6 +270,16 @@ int AudioEngine::stopInput() {
     return 0;
 }
 
+float AudioEngine::readInputPeak() {
+    if (inputCallback == nullptr ||
+        inputCallback->calls.load(std::memory_order_relaxed) == 0) {
+        
+            return -1.0f;
+    }
+
+    return inputCallback->peak.exchange(0.0f, std::memory_order_relaxed);
+}
+
 extern "C" int gong_audio_start(void) {
     return engine.start();
 }
@@ -275,4 +294,8 @@ extern "C" int gong_audio_input_start(void) {
 
 extern "C" int gong_audio_input_stop(void) {
     return engine.stopInput();
+}
+
+extern "C" float gong_audio_input_peak(void) {
+    return engine.readInputPeak();
 }
