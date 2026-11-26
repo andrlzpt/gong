@@ -105,6 +105,30 @@ private:
 
 static AudioEngine engine;
 
+static void logBuffers(const char* name, oboe::AudioStream* audioStream) {
+    const int32_t rate = audioStream->getSampleRate();
+    const int32_t burst = audioStream->getFramesPerBurst();
+    const int32_t size = audioStream->getBufferSizeInFrames();
+    const int32_t capacity = audioStream->getBufferCapacityInFrames();
+
+    __android_log_print(
+        ANDROID_LOG_INFO, "GONG",
+        "%s buffers: burst=%d, size=%d, capacity=%d frames",
+        name,
+        static_cast<int>(burst),
+        static_cast<int>(size),
+        static_cast<int>(capacity)
+    );
+
+    if (rate > 0 && size > 0) {
+        __android_log_print(
+            ANDROID_LOG_INFO, "GONG",
+            "%s buffer duration: %.2f ms",
+            name, 1000.0 * size / rate
+        );
+    }
+}
+
 int AudioEngine::start() {
     if (stream != nullptr) {
         return 0;
@@ -162,6 +186,8 @@ int AudioEngine::start() {
         callback.reset();
         return -1;
     }
+
+    logBuffers("Output", stream.get());
 
     return 0;
 }
@@ -253,6 +279,8 @@ int AudioEngine::startInput() {
         inputCallback.reset();
         return -1;
     }
+
+    logBuffers("Input", inputStream.get());
 
     __android_log_print(
         ANDROID_LOG_INFO, "GONG",
