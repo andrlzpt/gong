@@ -166,10 +166,30 @@ int AudioEngine::start() {
     return 0;
 }
 
+static void logXRuns(const char* name, oboe::AudioStream* audioStream) {
+    const auto result = audioStream->getXRunCount();
+
+    if (result) {
+        __android_log_print(
+            ANDROID_LOG_INFO, "GONG",
+            "%s xruns: %d",
+            name, static_cast<int>(result.value())
+        );
+    } else {
+        __android_log_print(
+            ANDROID_LOG_WARN, "GONG",
+            "%s xrun count unavailable: %s",
+            name, oboe::convertToText(result.error())
+        );
+    }
+}
+
 int AudioEngine::stop() {
     if (stream == nullptr) {
         return 0;
     }
+
+    logXRuns("Output", stream.get());
 
     const oboe::Result result = stream->close();
 
@@ -250,6 +270,8 @@ int AudioEngine::stopInput() {
     if (inputStream == nullptr) {
         return 0;
     }
+
+    logXRuns("Input", inputStream.get());
 
     const oboe::Result result = inputStream->close();
 
